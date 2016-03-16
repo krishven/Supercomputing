@@ -5,15 +5,11 @@
 #define V 4
 #define NA 100000
 
-void printSolution(int dist[][V]);
+void printSolution(int graph[][V]);
 
-void floydWarshell (int graph[][V])
+void iterFW(int graph[][V])
 {
-    int dist[V][V];
     cilk::cilkview cv;
-    for (int i = 0; i < V; i++)
-        for (int j = 0; j < V; j++)
-            dist[i][j] = graph[i][j];
     cv.start();
     cilk_for (int k = 0; k < V; k++)
     {
@@ -21,27 +17,27 @@ void floydWarshell (int graph[][V])
         {
             for (int j = 0; j < V; j++)
             {
-                if (dist[i][k] + dist[k][j] < dist[i][j])
-                    dist[i][j] = dist[i][k] + dist[k][j];
+                if (graph[i][k] + graph[k][j] < graph[i][j])
+                    graph[i][j] = graph[i][k] + graph[k][j];
             }
         }
     }
     cv.stop();
     cv.dump("results", false);
     std::cout << cv.accumulated_milliseconds() / 1000.f << " seconds" << std::endl;
-    printSolution(dist);
+    printSolution(graph);
 }
 
-void printSolution(int dist[][V])
+void printSolution(int graph[][V])
 {
     for (int i = 0; i < V; i++)
     {
         for (int j = 0; j < V; j++)
         {
-            if (dist[i][j] == NA)
+            if (graph[i][j] == NA)
                 std::cout << "       " << "-";
             else
-                std::cout << "       "   << dist[i][j];
+                std::cout << "       "   << graph[i][j];
         }
         std::cout << "\n";
     }
@@ -56,6 +52,6 @@ int cilk_main(int argc, char* argv[])
     };
 
     // Print the solution
-    floydWarshell(graph);
+    iterFW(graph);
     return 0;
 }
