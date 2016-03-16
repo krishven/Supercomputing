@@ -11,11 +11,11 @@ void iterFW(int graph[][V])
 {
     cilk::cilkview cv;
     cv.start();
-    cilk_for (int k = 0; k < V; k++)
+    for (int k = 0; k < V; k++)
     {
         cilk_for (int i = 0; i < V; i++)
         {
-            for (int j = 0; j < V; j++)
+            cilk_for (int j = 0; j < V; j++)
             {
                 if (graph[i][k] + graph[k][j] < graph[i][j])
                     graph[i][j] = graph[i][k] + graph[k][j];
