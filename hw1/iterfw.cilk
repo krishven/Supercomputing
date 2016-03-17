@@ -1,9 +1,12 @@
 #include <iostream>
 #include <cilk.h>
 #include <cilkview.h>
+#include <iomanip>
 
-#define V 4
+#define V 5000
 #define NA 100000
+
+using namespace std;
 
 void printSolution(int graph[][V]);
 
@@ -13,9 +16,9 @@ void iterFW(int graph[][V])
     cv.start();
     for (int k = 0; k < V; k++)
     {
-        cilk_for (int i = 0; i < V; i++)
+        for (int i = 0; i < V; i++)
         {
-            cilk_for (int j = 0; j < V; j++)
+            for (int j = 0; j < V; j++)
             {
                 if (graph[i][k] + graph[k][j] < graph[i][j])
                     graph[i][j] = graph[i][k] + graph[k][j];
@@ -24,8 +27,8 @@ void iterFW(int graph[][V])
     }
     cv.stop();
     cv.dump("results", false);
-    std::cout << cv.accumulated_milliseconds() / 1000.f << " seconds" << std::endl;
-    printSolution(graph);
+    cout << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+    //printSolution(graph);
 }
 
 void printSolution(int graph[][V])
@@ -34,22 +37,26 @@ void printSolution(int graph[][V])
     {
         for (int j = 0; j < V; j++)
         {
+            cout.width(8);
             if (graph[i][j] == NA)
-                std::cout << "       " << "-";
+                cout << "-";
             else
-                std::cout << "       "   << graph[i][j];
+                cout << graph[i][j];
         }
-        std::cout << "\n";
+        cout << "\n";
     }
 }
 
 int cilk_main(int argc, char* argv[])
 {
-    int graph[V][V] = { {0,   5,  NA, 10},
-        {NA, 0,   3, NA},
-        {NA, NA, 0,   1},
-        {NA, NA, NA, 0}
-    };
+    int graph[V][V];
+
+    for (int i = 0; i < V; i++)
+        for (int j = 0; j < V; j++)
+            if (i == j)
+                graph[i][j] = 0;
+            else
+                graph[i][j] = i + j;
 
     // Print the solution
     iterFW(graph);
