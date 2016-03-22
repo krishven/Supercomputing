@@ -1,9 +1,11 @@
 #include <iostream>
 #include <omp.h>
+#include <cstdlib>
+
 using namespace std;
 
 #define V 4
-#define M 2
+//#define m 2
 #define NA 100000
 
 #define X11 xi, xj
@@ -23,7 +25,7 @@ using namespace std;
 
 #define PARALLEL 
 
-void iterFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj)
+void iterFW (int **graph, int length, int xi, int xj, int ui, int uj, int vi, int vj)
 {
 	for (int k = uj; k < uj + length; k++)
 	{
@@ -31,85 +33,116 @@ void iterFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int
 		{
 			for (int j = xj; j < xj + length; j++)
 			{
-				if (X[i][k] + X[k][j] < X[i][j])
-					X[i][j] = X[i][k] + X[k][j];
+				if (graph[i][k] + graph[k][j] < graph[i][j])
+					graph[i][j] = graph[i][k] + graph[k][j];
 			}
 		}
 	}
 }
 
-void AFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj) {
-	if (length == M)
-		iterFW(X, length, X11, U11, V11);
+void AFW (int **graph, int length, int m, int xi, int xj, int ui, int uj, int vi, int vj) {
+	if (length == m)
+		iterFW(graph, length, X11, U11, V11);
 	else {
 		int newlen = length / 2;
-		AFW(X, newlen, X11, U11, V11);
+		AFW(graph, newlen, m, X11, U11, V11);
 
 #ifdef PARALLEL		
-		#pragma omp parallel num_threads(2)
+		#pragma omp task firstprivate(graph,newlen,m,xi,xj,ui,uj,vi,vj)
 		{
-			if (omp_get_thread_num()!=0)	
-				AFW(X, newlen, X12, U11, V12);
-			else
-				AFW(X, newlen, X21, U21, V11);			
+			
+				AFW(graph, newlen, m, X12, U11, V12);
 		}
 		
-		#pragma omp barrier
+		#pragma omp task firstprivate(graph,newlen,m,xi,xj,ui,uj,vi,vj)
+		{
+				AFW(graph, newlen, m, X21, U21, V11);			
+		}
+		
+		#pragma omp taskwait
 
-		AFW(X, newlen, X22, U21, V12);
-		AFW(X, newlen, X22, U22, V22);
-//		cilk_spawn AFW(X, newlen, X21, U22, V21);
-		#pragma omp parallel num_threads(2)
+		AFW(graph, newlen, m, X22, U21, V12);
+		AFW(graph, newlen, m, X22, U22, V22);
+//		cilk_spawn AFW(graph, newlen, X21, U22, V21);
+		#pragma omp task firstprivate(graph,newlen,m,xi,xj,ui,uj,vi,vj)
 		{
-			if (omp_get_thread_num()!=0)	
-				AFW(X, newlen, X21, U22, V21);
-			else
-				AFW(X, newlen, X12, U12, V22);
+			
+				AFW(graph, newlen, m, X21, U22, V21);
+		}
+		#pragma omp task firstprivate(graph,newlen,m,xi,xj,ui,uj,vi,vj)
+		{
+
+				AFW(graph, newlen, m, X12, U12, V22);
 		}
 		
-		#pragma omp barrier
+		#pragma omp taskwait
 #else
-		AFW(X, newlen, X12, U11, V12);
-		AFW(X, newlen, X21, U21, V11);			
-		AFW(X, newlen, X22, U21, V12);
-		AFW(X, newlen, X22, U22, V22);
-		AFW(X, newlen, X21, U22, V21);
-		AFW(X, newlen, X12, U12, V22);
+		AFW(graph, newlen, m, X12, U11, V12);
+		AFW(graph, newlen, m, X21, U21, V11);			
+		AFW(graph, newlen, m, X22, U21, V12);
+		AFW(graph, newlen, m, X22, U22, V22);
+		AFW(graph, newlen, m, X21, U22, V21);
+		AFW(graph, newlen, m, X12, U12, V22);
 #endif
 
-		AFW(X, newlen, X11, U12, V21);
+		AFW(graph, newlen, m, X11, U12, V21);
 
 	}
 }
 
-void printSolution(int X[][V])
+void printSolution(int **graph)
 {
 	for (int i = 0; i < V; i++)
 	{
 		for (int j = 0; j < V; j++)
 		{
-			if (X[i][j] == NA)
+			if (graph[i][j] == NA)
 				cout << "       " << "-";
 			else
-				cout << "       "   << X[i][j];
+				cout << "       "   << graph[i][j];
 		}
 		cout << "\n";
 	}
 }
-
+	
 int main(int argc, char* argv[])
 {
-	int X[V][V] = { {0,   5,  NA, 10},
-		{NA, 0,   3, NA},
-		{NA, NA, 0,   1},
-		{NA, NA, NA, 0}
-	};
+	
+	int n=8192;
+	int m=64;
+	int num=0;	
 
-	// Print the solution
-	double start = omp_get_wtime();
-	AFW(X, V, 0, 0, 0, 0, 0, 0);
-	std::cout << "Time diff" << omp_get_wtime()-start <<"\n";
+    int **graph = new int*[n];
+    for (int i = 0; i < n; ++i)
+        graph[i] = new int[n];
 
-	printSolution(X);
-	return 0;
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+	        if (i == j)
+                graph[i][j] = 0;
+            else
+                graph[i][j] = rand()%10;
+//printSolution(graph,n);
+
+	for (num=2;num<9;num++)
+	{  
+		double start = omp_get_wtime();
+		#pragma omp parallel num_threads(num)	
+		{	
+			#pragma omp single
+			{
+					AFW(graph, n, m, 0, 0, 0, 0, 0, 0);
+			}
+		}	
+		std::cout << "num: "<< num << " Time diff: " << omp_get_wtime()-start <<"\n";
+	}
+
+	//printSolution(graph,n);
+	for ( int i = 0 ; i < n; i++ )
+    {
+		delete graph[i];
+    }
+    	delete[] graph;    
+
+	return 0;	
 }

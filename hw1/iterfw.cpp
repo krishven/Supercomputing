@@ -1,43 +1,42 @@
 #include <iostream>
 #include <omp.h>
+#include <cstdlib>
 //#include <cilk.h>
 //#include <cilkview.h>
 
-#define V 4
+
 #define NA 100000
 
-void printSolution(int graph[][V]);
+void printSolution(int **graph,int n);
 
-void iterFW(int graph[][V])
+void iterFW(int **graph, int n)
 {
     //cilk::cilkview cv;
     //cv.start();
-    double start = omp_get_wtime();
-    for (int k = 0; k < V; k++)
+    for (int k = 0; k < n; k++)
     {
         #pragma omp parallel for
-        for (int i = 0; i < V; i++)
+        for (int i = 0; i < n; i++)
         {
             #pragma omp parallel for
-            for (int j = 0; j < V; j++)
+            for (int j = 0; j < n; j++)
             {
                 if (graph[i][k] + graph[k][j] < graph[i][j])
                     graph[i][j] = graph[i][k] + graph[k][j];
             }
         }
     }
-    std::cout << "Time diff" << omp_get_wtime()-start <<"\n";
    // cv.stop();
     //cv.dump("results", false);
     //std::cout << cv.accumulated_milliseconds() / 1000.f << " seconds" << std::endl;
-    printSolution(graph);
+    //printSolution(graph,n);
 }
 
-void printSolution(int graph[][V])
+void printSolution(int **graph,int n)
 {
-    for (int i = 0; i < V; i++)
+    for (int i = 0; i < n; i++)
     {
-        for (int j = 0; j < V; j++)
+        for (int j = 0; j < n; j++)
         {
             if (graph[i][j] == NA)
                 std::cout << "       " << "-";
@@ -50,13 +49,36 @@ void printSolution(int graph[][V])
 
 int main(int argc, char* argv[])
 {
+/*
     int graph[V][V] = { {0,   5,  NA, 10},
         {NA, 0,   3, NA},
         {NA, NA, 0,   1},
         {NA, NA, NA, 0}
     };
+*/
+    int n=8192;
+
+    int **graph = new int*[n];
+    for (int i = 0; i < n; ++i)
+        graph[i] = new int[n];
+
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            if (i == j)
+                graph[i][j] = 0;
+            else
+                graph[i][j] = rand()%100;
 
     // Print the solution
-    iterFW(graph);
+    double start = omp_get_wtime();
+    iterFW(graph,n);
+    std::cout << "Time diff: " << omp_get_wtime()-start <<"\n";
+
+    for ( int i = 0 ; i < n; i++ )
+    {
+        delete graph[i];
+    }
+    delete[] graph;    
+
     return 0;
 }
