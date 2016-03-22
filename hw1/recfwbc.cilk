@@ -3,8 +3,6 @@
 #include <cilkview.h>
 using namespace std;
 
-#define V 4
-#define M 2
 #define NA 100000
 
 #define X11 xi, xj
@@ -22,105 +20,126 @@ using namespace std;
 #define V21 vi + newlen, vj
 #define V22 vi + newlen, vj + newlen
 
-void iterFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj)
+void iterFW (int **graph, int length, int xi, int xj, int ui, int uj, int vi, int vj)
 {
-	for (int k = uj; k < uj + length; k++)
-	{
-		for (int i = xi; i < xi + length; i++)
-		{
-			for (int j = xj; j < xj + length; j++)
-			{
-				if (X[i][k] + X[k][j] < X[i][j])
-					X[i][j] = X[i][k] + X[k][j];
-			}
-		}
-	}
+    for (int k = uj; k < uj + length; k++)
+    {
+        for (int i = xi; i < xi + length; i++)
+        {
+            for (int j = xj; j < xj + length; j++)
+            {
+                if (X[i][k] + X[k][j] < X[i][j])
+                    X[i][j] = X[i][k] + X[k][j];
+            }
+        }
+    }
 }
 
-void CFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj) {
-	if (length == M)
-		iterFW(X, length, X11, U11, V11);
-	else {
-		int newlen = length / 2;
-		cilk_spawn CFW (X, newlen, X11, U11, V11);
-		CFW (X, newlen, X21, U21, V11);
-		cilk_sync;
-		cilk_spawn CFW (X, newlen, X12, U11, V12);
-		CFW (X, newlen, X22, U21, V12);
-		cilk_sync;
-		cilk_spawn CFW (X, newlen, X12, U12, V22);
-		CFW (X, newlen, X22, U22, V22);
-		cilk_sync;
-		cilk_spawn CFW (X, newlen, X11, U12, V21);
-		CFW (X, newlen, X21, U22, V12);
-		cilk_sync;
+void CFW (int **graph, int length, int m, int xi, int xj, int ui, int uj, int vi, int vj) {
+    if (length == m)
+        iterFW(X, length, X11, U11, V11);
+    else {
+        int newlen = length / 2;
+        cilk_spawn CFW (X, newlen, m, X11, U11, V11);
+        CFW (X, newlen, m, X21, U21, V11);
+        cilk_sync;
+        cilk_spawn CFW (X, newlen, m, X12, U11, V12);
+        CFW (X, newlen, m, X22, U21, V12);
+        cilk_sync;
+        cilk_spawn CFW (X, newlen, m, X12, U12, V22);
+        CFW (X, newlen, m, X22, U22, V22);
+        cilk_sync;
+        cilk_spawn CFW (X, newlen, m, X11, U12, V21);
+        CFW (X, newlen, m, X21, U22, V12);
+        cilk_sync;
 
-	}
+    }
 }
 
-void BFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj) {
-	if (length == M)
-		iterFW(X, length, X11, U11, V11);
-	else {
-		int newlen = length / 2;
-		cilk_spawn BFW (X, newlen, X11, U11, V11);
-		BFW (X, newlen, X12, U11, V12);
-		cilk_sync;
-		cilk_spawn BFW (X, newlen, X21, U21, V11);
-		BFW (X, newlen, X22, U21, V12);
-		cilk_sync;
-		cilk_spawn BFW (X, newlen, X21, U22, V21);
-		BFW (X, newlen, X22, U22, V22);
-		cilk_sync;
-		cilk_spawn BFW (X, newlen, X11, U12, V21);
-		BFW (X, newlen, X12, U12, V22);
-		cilk_sync;
-	}
+void BFW (int **graph, int length, int m, int xi, int xj, int ui, int uj, int vi, int vj) {
+    if (length == m)
+        iterFW(X, length, X11, U11, V11);
+    else {
+        int newlen = length / 2;
+        cilk_spawn BFW (X, newlen, m, X11, U11, V11);
+        BFW (X, newlen, m, X12, U11, V12);
+        cilk_sync;
+        cilk_spawn BFW (X, newlen, m, X21, U21, V11);
+        BFW (X, newlen, m, X22, U21, V12);
+        cilk_sync;
+        cilk_spawn BFW (X, newlen, m, X21, U22, V21);
+        BFW (X, newlen, m, X22, U22, V22);
+        cilk_sync;
+        cilk_spawn BFW (X, newlen, m, X11, U12, V21);
+        BFW (X, newlen, m, X12, U12, V22);
+        cilk_sync;
+    }
 }
 
-void AFW (int X[][V], int length, int xi, int xj, int ui, int uj, int vi, int vj) {
-	if (length == M)
-		iterFW(X, length, X11, U11, V11);
-	else {
-		int newlen = length / 2;
-		AFW (X, newlen, X11, U11, V11);
-		cilk_spawn BFW (X, newlen, X12, U11, V12);
-		CFW (X, newlen, X21, U21, V11);
-		cilk_sync;
-		AFW (X, newlen, X22, U21, V12);
-		AFW (X, newlen, X22, U22, V22);
-		cilk_spawn BFW (X, newlen, X21, U22, V21);
-		CFW (X, newlen, X12, U12, V22);
-		cilk_sync;
-		AFW (X, newlen, X11, U12, V21);
-	}
+void AFW (int **graph, int length, int m, int xi, int xj, int ui, int uj, int vi, int vj) {
+    if (length == m)
+        iterFW(X, length, X11, U11, V11);
+    else {
+        int newlen = length / 2;
+        AFW (X, newlen, m, X11, U11, V11);
+        cilk_spawn BFW (X, newlen, m, X12, U11, V12);
+        CFW (X, newlen, m, X21, U21, V11);
+        cilk_sync;
+        AFW (X, newlen, m, X22, U21, V12);
+        AFW (X, newlen, m, X22, U22, V22);
+        cilk_spawn BFW (X, newlen, m, X21, U22, V21);
+        CFW (X, newlen, m, X12, U12, V22);
+        cilk_sync;
+        AFW (X, newlen, m, X11, U12, V21);
+    }
 }
 
-void printSolution(int X[][V])
-{
-	for (int i = 0; i < V; i++)
-	{
-		for (int j = 0; j < V; j++)
-		{
-			if (X[i][j] == NA)
-				cout << "       " << "-";
-			else
-				cout << "       "   << X[i][j];
-		}
-		cout << "\n";
-	}
-}
+// void printSolution(int **graph)
+// {
+//     for (int i = 0; i < V; i++)
+//     {
+//         for (int j = 0; j < V; j++)
+//         {
+//             if (X[i][j] == NA)
+//                 cout << "       " << "-";
+//             else
+//                 cout << "       "   << X[i][j];
+//         }
+//         cout << "\n";
+//     }
+// }
 
 int cilk_main(int argc, char* argv[])
 {
-	int X[V][V] = { {0,   5,  NA, 10},
-		{NA, 0,   3, NA},
-		{NA, NA, 0,   1},
-		{NA, NA, NA, 0}
-	};
+    int n = 8192;
+    int m = 2;
+    
+    while (m <= n) {
+        int **X = new int*[n];
+        for (int i = 0; i < n; ++i)
+            X[i] = new int[n];
 
-	// Print the solution
-	AFW(X, V, 0, 0, 0, 0, 0, 0);
-	printSolution(X);
-	return 0;
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                if (i == j)
+                    X[i][j] = 0;
+                else
+                    X[i][j] = i + j;
+
+        cilk::cilkview cv;
+        cv.start();         
+        AFW(X, n, m, 0, 0, 0, 0, 0, 0);
+        cv.stop();
+        cv.dump("results", false);
+        cout << "M: " << m << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+
+        for ( int i = 0 ; i < n; i++ )
+        {
+            delete X[i];
+        }
+        delete[] X;
+        m = m*2;
+    }
+
+    return 0;
 }
