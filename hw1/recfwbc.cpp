@@ -240,43 +240,55 @@ void printSolution(int **graph,int n)
 
 int main(int argc, char* argv[])
 {
-
-
 	int n=8192;
-	int m=64;
-	int num=0;
-	
-    int **graph = new int*[n];
-    for (int i = 0; i < n; ++i)
-        graph[i] = new int[n];
+	int m=n;
+	int num=0;	
 
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < n; j++)
-            if (i == j)
-                graph[i][j] = 0;
-            else
-                graph[i][j] = rand()%10;
-//printSolution(graph,n);
+	while(m>1)
+	{	
+    	int **graph = new int*[n];
+    	for (int i = 0; i < n; ++i)
+        	graph[i] = new int[n];
 
-	for (num=2;num<9;num++)
-	{  
+    	for (int i = 0; i < n; i++)
+        	for (int j = 0; j < n; j++)
+	        	if (i == j)
+                	graph[i][j] = 0;
+            	else
+                	graph[i][j] = i+j;
+
+		/*
+		for (num=2;num<9;num++)
+		{	  
+			double start = omp_get_wtime();
+			#pragma omp parallel num_threads(num)	
+			{	
+				#pragma omp single
+				{
+						AFW(graph, n, m, 0, 0, 0, 0, 0, 0);
+				}
+			}	
+			std::cout << "num: "<< num << " Time diff: " << omp_get_wtime()-start <<"\n";
+		}
+		*/
+
 		double start = omp_get_wtime();
-		#pragma omp parallel num_threads(num)	
+		#pragma omp parallel 
 		{	
 			#pragma omp single
 			{
 					AFW(graph, n, m, 0, 0, 0, 0, 0, 0);
 			}
 		}	
-		std::cout << "num: "<< num << " Time diff: " << omp_get_wtime()-start <<"\n";
-	}
+		std::cout << "m: "<< m << " Time diff: " << omp_get_wtime()-start <<"\n";
 
-	//printSolution(graph,n);
-	for ( int i = 0 ; i < n; i++ )
-    {
-		delete graph[i];
-    }
-    delete[] graph;    
-
+		m=m/2;
+		//printSolution(graph,n);
+		for ( int i = 0 ; i < n; i++ )
+	    {
+			delete graph[i];
+	    }
+	    delete[] graph;    
+	}    
 	return 0;	
 }
