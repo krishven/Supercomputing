@@ -240,12 +240,13 @@ void printSolution(int **graph,int n)
 
 int main(int argc, char* argv[])
 {
-	int n=8192;
-	int m=n;
+	int n=16;
+	int m=16;
 	int num=0;	
 
-	while(m>1)
-	{	
+	while(n<1024)
+	{
+	
     	int **graph = new int*[n];
     	for (int i = 0; i < n; ++i)
         	graph[i] = new int[n];
@@ -257,8 +258,10 @@ int main(int argc, char* argv[])
             	else
                 	graph[i][j] = i+j;
 
-		/*
-		for (num=2;num<9;num++)
+	
+		std::cout << "For n = "<<n<<",\n";
+	
+		for (num=1;num<17;num++)
 		{	  
 			double start = omp_get_wtime();
 			#pragma omp parallel num_threads(num)	
@@ -268,12 +271,12 @@ int main(int argc, char* argv[])
 						AFW(graph, n, m, 0, 0, 0, 0, 0, 0);
 				}
 			}	
-			std::cout << "num: "<< num << " Time diff: " << omp_get_wtime()-start <<"\n";
+			std::cout <<num << "\t" << omp_get_wtime()-start <<"\n";
 		}
-		*/
-
+		
+/*
 		double start = omp_get_wtime();
-		#pragma omp parallel 
+		#pragma omp parallel num_threads(16)
 		{	
 			#pragma omp single
 			{
@@ -281,14 +284,15 @@ int main(int argc, char* argv[])
 			}
 		}	
 		std::cout << "m: "<< m << " Time diff: " << omp_get_wtime()-start <<"\n";
-
-		m=m/2;
+*/
 		//printSolution(graph,n);
 		for ( int i = 0 ; i < n; i++ )
 	    {
 			delete graph[i];
 	    }
 	    delete[] graph;    
+
+	    n=n*2;
 	}    
 	return 0;	
 }

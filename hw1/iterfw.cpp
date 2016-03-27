@@ -58,6 +58,10 @@ int main(int argc, char* argv[])
 */
     int n=8192;
 
+   omp_set_num_threads(16);
+
+   while(n>1)
+ {	
     int **graph = new int*[n];
     for (int i = 0; i < n; ++i)
         graph[i] = new int[n];
@@ -67,18 +71,19 @@ int main(int argc, char* argv[])
             if (i == j)
                 graph[i][j] = 0;
             else
-                graph[i][j] = rand()%100;
+                graph[i][j] = i+j;
 
     // Print the solution
     double start = omp_get_wtime();
     iterFW(graph,n);
-    std::cout << "Time diff: " << omp_get_wtime()-start <<"\n";
+    std::cout <<n << "\t" << omp_get_wtime()-start << "\n";
 
     for ( int i = 0 ; i < n; i++ )
     {
         delete graph[i];
     }
     delete[] graph;    
-
+    n=n/2;	
+}
     return 0;
 }
