@@ -8,8 +8,7 @@ using namespace std;
 
 #define M2 2
 #define M3 2
-#define N  8192
-
+#define N 8192
 
 void swap(int &a1, int &a2) {
 	int t = a1;
@@ -101,41 +100,35 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 //		par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
 		par_merge(T, q1 + 1, r1, q2 , r2, A, q3 + 1);
 		cilk_sync;
-
 	}
 }
 
-void par_merge_sort_pm(int A[], int p, int r)
+void par_merge_sort_pm(int A[], int T[], int p, int r)
 {
-	static int T[N];
-
 	int i, size, q;
 	int n = r - p + 1;
-		
+
 	if (n <= M3)
 		sort(A, p, r);
 	else {
 		q = (p + r) / 2;
 
-		cilk_spawn par_merge_sort_pm(A, p, q);
-//		par_merge_sort_pm(A, p, q);
-		par_merge_sort_pm(A, q + 1, r);
-		cilk_sync;
+	cilk_spawn par_merge_sort_pm(A, T, p, q);
+//	par_merge_sort_pm(A, p, q);
+	par_merge_sort_pm(A, T, q + 1, r);
+	cilk_sync;
 
+	for (i = p; i <= r; i++)
+		T[i] = A[i];
 
-		for (i = p; i <= r; i++)
-			T[i] = A[i];
-
-		par_merge(T, p, q, q + 1, r, A, p);
-
-
+	par_merge(T, p, q, q + 1, r, A, p);
 	}
 }
 
 int cilk_main() {
 	int n = N, i;
 	int m = 2;
-	int A[N];
+	int A[N], T[N];
 
 	for (i = 0; i < n; i++) {
 		A[i] = n - i;
@@ -144,7 +137,7 @@ int cilk_main() {
 	cilk::cilkview cv;
 	cv.start();
 
-	par_merge_sort_pm(A, 0, n - 1);
+	par_merge_sort_pm(A, T, 0, n - 1);
 
 	cv.stop();
 	cv.dump("results", false);
