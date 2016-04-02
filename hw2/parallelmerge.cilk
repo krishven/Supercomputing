@@ -2,6 +2,7 @@
 #include <cilk.h>
 #include <cilkview.h>
 #include <stdint.h>
+#include <algorithm>
 #include<stdio.h>
 using namespace std;
 
@@ -21,7 +22,7 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 	int i = p1, j = p2, k = p3;
 
 //	printf("%d:%d \t %d:%d \t %d:%d\n",p1,r1,p2,r2,p3,r3);
-	while (i <= r1 && j <= r2 && k <=r3 ) {
+	while (i <= r1 && j <= r2 && k <= r3) {
 		if (T[i] <= T[j]) {
 			A[k] = T[i];
 			i++;
@@ -37,7 +38,7 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 		k++;
 		i++;
 	}
-	while (j <= r2 && k <=r3 ) {
+	while (j <= r2 && k <= r3) {
 		A[k] = T[j];
 		k++;
 		j++;
@@ -46,27 +47,28 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 
 int binary_search(int k, int T[], int l, int r) {
 	int m;
+	r = max(l, r + 1);
 
-	while (l <= r)
+	while (l < r)
 	{
 		m = l + (r - l) / 2;
-		if (T[m] == k)
-			return m;
+		if (T[m] <= k && T[m] > key)
+			return m + 1;
 		if (T[m] < k)
 			l = m + 1;
 		else
-			r = m - 1;
+			r = m;
 	}
-	return 0;
+	return r;
 }
 
 void sort(int arr[], int l, int r) {
 	int i, key, j;
-	for (i = l; i <= r; i++)
+	for (i = l + 1; i <= r; i++)
 	{
 		key = arr[i];
 		j = i - 1;
-		while (j >= 0 && arr[j] > key)
+		while (j >= l && arr[j] > key)
 		{
 			arr[j + 1] = arr[j];
 			j = j - 1;
@@ -77,13 +79,13 @@ void sort(int arr[], int l, int r) {
 
 void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 {
-	int n1,n2,r3;
-	
+	int n1, n2, r3;
+
 
 	n1 = r1 - p1 + 1, n2 = r2 - p2 + 1, r3 = p3 + n1 + n2 - 1;
 
 //	printf("%d:%d \t %d:%d \t %d:%d\n",p1,r1,p2,r2,p3,r3);
-	
+
 	if (n1 + n2 <= M2)
 		serial_merge(T, p1, r1, p2, r2, A, p3, r3);
 	else {
@@ -95,50 +97,50 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 		int q1 = (p1 + r1) / 2;
 		int q2 = binary_search(T[q1], T, p2, r2);
 		int q3 = p3 + (q1 - p1) + (q2 - p2);
-		
+
 //		printf("q1 :%d \t q2:%d\t q3:%d\t",q1,q2,q3);
 
 		A[q3] = T[q1];
-		
+
 //		cilk_spawn par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
 		par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
-		par_merge(T, q1 + 1, r1, q2 , r2, A, q3+1);
+		par_merge(T, q1 + 1, r1, q2 , r2, A, q3 + 1);
 //		cilk_sync;
-		
+
 	}
 }
 
 void par_merge_sort_pm(int A[], int p, int r)
 {
-	int T1[N];
+	static int T[N];
 
-	int i,size,q;
+	int i, size, q;
 	int n = r - p + 1;
-	printf("n val:%d\n",n);
+	printf("n val:%d\n", n);
 	if (n <= M3)
 		sort(A, p, r);
 	else {
 		q = (p + r) / 2;
-		cout << "p:q:r " << p <<"\t"<< q<<"\t" << r <<endl;
-		
+		cout << "p:q:r " << p << "\t" << q << "\t" << r << endl;
+
 //		cilk_spawn par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, q + 1, r);
 //		cilk_sync;
 
-		
-		for (i = p; i <= r; i++)
-			T1[i] = A[i];
 
-		par_merge(T1, p, q, q + 1, r, A, p);
-		
-		
+		for (i = p; i <= r; i++)
+			T[i] = A[i];
+
+		par_merge(T, p, q, q + 1, r, A, p);
+
+
 	}
 }
 
 int cilk_main() {
-	int n = N,i;
-	int m =2;
+	int n = N, i;
+	int m = 2;
 	int A[N];
 
 	for (i = 0; i < n; i++) {
@@ -150,16 +152,16 @@ int cilk_main() {
 	for (i = 0; i < n; i++)
 		cout << A[i] << "\t";
 	cout << "\n";
-*/	
-    cilk::cilkview cv;
-    cv.start();
+	*/
+	cilk::cilkview cv;
+	cv.start();
 
 	par_merge_sort_pm(A, 0, n - 1);
 
-    cv.stop();
-    cv.dump("results", false);
-    cout << "M: " << m << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
-	
+	cv.stop();
+	cv.dump("results", false);
+	cout << "M: " << m << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+
 	for (i = 0; i < n; i++)
 		cout << A[i] << "\t";
 	cout << "\n";
