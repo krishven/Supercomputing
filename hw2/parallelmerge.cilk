@@ -1,12 +1,14 @@
 #include <iostream>
-//#include<stdio.h>
+#include <cilk.h>
+#include <cilkview.h>
+#include <stdint.h>
+#include<stdio.h>
 using namespace std;
 
 #define M2 2
 #define M3 2
-#define N 2048
+#define N  64
 
-int A[N], T1[N];
 
 void swap(int &a1, int &a2) {
 	int t = a1;
@@ -19,7 +21,7 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 	int i = p1, j = p2, k = p3;
 
 //	printf("%d:%d \t %d:%d \t %d:%d\n",p1,r1,p2,r2,p3,r3);
-	while (i <= r1 && j <= r2) {
+	while (i <= r1 && j <= r2 && k <=r3 ) {
 		if (T[i] <= T[j]) {
 			A[k] = T[i];
 			i++;
@@ -30,12 +32,12 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 		}
 		k++;
 	}
-	while (i <= r1) {
+	while (i <= r1 && k <= r3) {
 		A[k] = T[i];
 		k++;
 		i++;
 	}
-	while (j <= r2) {
+	while (j <= r2 && k <=r3 ) {
 		A[k] = T[j];
 		k++;
 		j++;
@@ -77,8 +79,6 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 {
 	int n1,n2,r3;
 	
-	if(p1<0 || r1 < 0 || p2 < 0 || r2 < 0 || p3 < 0)
-		return;
 
 	n1 = r1 - p1 + 1, n2 = r2 - p2 + 1, r3 = p3 + n1 + n2 - 1;
 
@@ -98,51 +98,67 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 		
 //		printf("q1 :%d \t q2:%d\t q3:%d\t",q1,q2,q3);
 
-		if(q1<0||q2<0||q3<0)
-			return;		
 		A[q3] = T[q1];
+		
+//		cilk_spawn par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
 		par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
-		par_merge(T, q1 + 1, r1, q2 , r2 , A, q3+1);
+		par_merge(T, q1 + 1, r1, q2 , r2, A, q3+1);
+//		cilk_sync;
 		
 	}
 }
 
 void par_merge_sort_pm(int A[], int p, int r)
 {
-	int i;
-	int n = r - p + 1;
+	int T1[N];
 
+	int i,size,q;
+	int n = r - p + 1;
+	printf("n val:%d\n",n);
 	if (n <= M3)
 		sort(A, p, r);
 	else {
-		int q = (p + r) / 2;
+		q = (p + r) / 2;
+		cout << "p:q:r " << p <<"\t"<< q<<"\t" << r <<endl;
 		
+//		cilk_spawn par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, q + 1, r);
+//		cilk_sync;
+
 		
 		for (i = p; i <= r; i++)
 			T1[i] = A[i];
+
 		par_merge(T1, p, q, q + 1, r, A, p);
+		
+		
 	}
 }
 
-int main() {
-	int n = 4096,i;
+int cilk_main() {
+	int n = N,i;
 	int m =2;
+	int A[N];
 
 	for (i = 0; i < n; i++) {
 		A[i] = n - i;
-		T1[i] = n - i;
 	}
 
 	//cout << n << "\nArray is \n";
-	
+	/*
 	for (i = 0; i < n; i++)
 		cout << A[i] << "\t";
 	cout << "\n";
-	
+*/	
+    cilk::cilkview cv;
+    cv.start();
+
 	par_merge_sort_pm(A, 0, n - 1);
 
+    cv.stop();
+    cv.dump("results", false);
+    cout << "M: " << m << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
 	
 	for (i = 0; i < n; i++)
 		cout << A[i] << "\t";
