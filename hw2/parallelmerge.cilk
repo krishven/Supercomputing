@@ -8,7 +8,7 @@ using namespace std;
 
 #define M2 2
 #define M3 2
-#define N  64
+#define N  8192
 
 
 void swap(int &a1, int &a2) {
@@ -21,7 +21,6 @@ void serial_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3, int 
 {
 	int i = p1, j = p2, k = p3;
 
-//	printf("%d:%d \t %d:%d \t %d:%d\n",p1,r1,p2,r2,p3,r3);
 	while (i <= r1 && j <= r2 && k <= r3) {
 		if (T[i] <= T[j]) {
 			A[k] = T[i];
@@ -52,7 +51,7 @@ int binary_search(int k, int T[], int l, int r) {
 	while (l < r)
 	{
 		m = l + (r - l) / 2;
-		if (T[m] <= k && T[m] > key)
+		if (T[m] <= k && T[m] > k)
 			return m + 1;
 		if (T[m] < k)
 			l = m + 1;
@@ -84,8 +83,6 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 
 	n1 = r1 - p1 + 1, n2 = r2 - p2 + 1, r3 = p3 + n1 + n2 - 1;
 
-//	printf("%d:%d \t %d:%d \t %d:%d\n",p1,r1,p2,r2,p3,r3);
-
 	if (n1 + n2 <= M2)
 		serial_merge(T, p1, r1, p2, r2, A, p3, r3);
 	else {
@@ -98,14 +95,12 @@ void par_merge(int T[], int p1, int r1, int p2, int r2, int A[], int p3)
 		int q2 = binary_search(T[q1], T, p2, r2);
 		int q3 = p3 + (q1 - p1) + (q2 - p2);
 
-//		printf("q1 :%d \t q2:%d\t q3:%d\t",q1,q2,q3);
-
 		A[q3] = T[q1];
 
-//		cilk_spawn par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
-		par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
+		cilk_spawn par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
+//		par_merge(T, p1, q1 - 1, p2, q2 - 1, A, p3);
 		par_merge(T, q1 + 1, r1, q2 , r2, A, q3 + 1);
-//		cilk_sync;
+		cilk_sync;
 
 	}
 }
@@ -116,17 +111,16 @@ void par_merge_sort_pm(int A[], int p, int r)
 
 	int i, size, q;
 	int n = r - p + 1;
-	printf("n val:%d\n", n);
+		
 	if (n <= M3)
 		sort(A, p, r);
 	else {
 		q = (p + r) / 2;
-		cout << "p:q:r " << p << "\t" << q << "\t" << r << endl;
 
-//		cilk_spawn par_merge_sort_pm(A, p, q);
-		par_merge_sort_pm(A, p, q);
+		cilk_spawn par_merge_sort_pm(A, p, q);
+//		par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, q + 1, r);
-//		cilk_sync;
+		cilk_sync;
 
 
 		for (i = p; i <= r; i++)
@@ -147,12 +141,6 @@ int cilk_main() {
 		A[i] = n - i;
 	}
 
-	//cout << n << "\nArray is \n";
-	/*
-	for (i = 0; i < n; i++)
-		cout << A[i] << "\t";
-	cout << "\n";
-	*/
 	cilk::cilkview cv;
 	cv.start();
 
