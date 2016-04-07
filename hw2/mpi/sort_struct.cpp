@@ -59,7 +59,7 @@ static void scatterData(double *arr, uint64_t arrSize, int rank, int p) {
 	MPI_Comm comm;
 	double *recvBuf,*finalBuf;
 	uint64_t i;
-	int q =p-1;
+	int q = 3;
 	//double *recvCounts,*disp;
 	int *recvCounts,*disp,*recvNum;
 	double globalPivot[p-1];
