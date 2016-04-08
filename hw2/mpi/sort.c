@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#define N 8192*32
+#define N 128
 
 
 typedef struct

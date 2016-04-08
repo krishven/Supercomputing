@@ -368,36 +368,7 @@ static void scatterData(double *arr, uint64_t arrSize, int rank, int p) {
 	 	//printf("\n");
 	 	cout << endl;
 	 }
-
-
-	/*
-	printf("Rank %d tmpArray\t", rank);
-	for(i=0;i<arrSize;i++) {
-		printf("%d\t", tempArray[i]);
-	}
-
-	printf("\n");
-	*/
-	
-	// MPI_Type_free(&mpi_bucket_type);
- //    MPI_Finalize();
-	
-/*	for(i=0;i<tempBucket.size;i++){
-		printf("%d\t", tempBucket.array[i]);
-	}
-	*/
-	// printf("\n");
-
-
-	
- //    for(i = 0 ; i < p; i++) {
- //    	printf("rank :%d bucket :%d\t",rank,i);
- //    	for(j=0;j<buckets[i]->size;j++){
- //    		printf("%d\t",buckets[i]->array[j]);
- //    	}
- //    	printf("\n");
-	// }
-	#endif
+#endif
 
 }
 

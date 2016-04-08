@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <string.h>
 #include <iostream>
+#include <ctime>
+
 #define N 67108864
 using namespace std;
 
@@ -68,9 +70,9 @@ static void scatterData(double *arr, uint64_t arrSize, int rank, int p) {
 		for (i = 0; i < arrSize; i++)
 			arr[i] = N - i;
 
-		for (uint64_t i = 0; i < n; i++) {
-            uint64_t x = rand()%n;
-            uint64_t y = rand()%n;
+		for (uint64_t i = 0; i < arrSize; i++) {
+            uint64_t x = rand()%arrSize;
+            uint64_t y = rand()%arrSize;
             double temp = arr[x];
             arr[x] = arr[y];
             arr[y] = temp;
@@ -241,15 +243,16 @@ static void scatterData(double *arr, uint64_t arrSize, int rank, int p) {
 	            finalBuf, recvCounts, disp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	if (rank == 0) {
-		for (i = 0; i < arrSize; i++)
-			cout << finalBuf[i] << "\n";
+		// for (i = 0; i < arrSize; i++)
+		// 	cout << finalBuf[i] << "\n";
 
-		cout << endl;
+		// cout << endl;
 		delete[] arr;
+		delete[] finalBuf;
 	}
 
 	delete[] recvBuf;
-	delete[] finalBuf;
+	
 
 	for (i = 0; i < p; i++) {
         delete buckets[i];
@@ -264,7 +267,7 @@ int main (int argc, char* argv[])
 {
 	int rank, size;
 	double *arr;
-	uint64_t n = 1024;
+	uint64_t n = 536870912;
 	
 	MPI_Init (&argc, &argv);			
 	MPI_Comm_rank (MPI_COMM_WORLD, &rank);        
@@ -273,15 +276,14 @@ int main (int argc, char* argv[])
 	uint64_t limit = 536870912;
     uint64_t diff = 53686988;
     
-    while(n<=limit) {
-        cilk::cilkview cv;
-        cv.start();
-        scatterData(arr, n, rank, size);
-        cv.stop();
-        cv.dump("tempop", false);
-        cout << "N: " << n << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
-        n = n + diff;
-    }
+  //  while(n<=limit) {
+		const clock_t begin_time = clock();
+
+		scatterData(arr, n, rank, size);
+
+		cout << n <<"\t" << float(clock () - begin_time)/ CLOCKS_PER_SEC<<endl;
+	    n = n + diff;
+    //}
 		
 	MPI_Finalize();	
 	return 0;
