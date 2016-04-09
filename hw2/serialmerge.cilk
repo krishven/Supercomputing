@@ -1,0 +1,128 @@
+#include <iostream>
+#include <stdio.h>
+#include <cilk.h>
+#include <cilkview.h>
+#include <math.h>
+#include <limits.h>
+
+using namespace std;
+
+void merge(double arr[], uint64_t l, uint64_t m, uint64_t r)
+{
+    uint64_t i, j, k;
+    uint64_t n1 = m - l + 1;
+    uint64_t n2 =  r - m;
+
+    double *L = new double[n1];
+    double *R = new double[n2];
+
+    for (i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1 + j];
+
+    i = 0;
+    j = 0;
+    k = l;
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            arr[k] = L[i];
+            i++;
+        }
+        else
+        {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < n1)
+    {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    while (j < n2)
+    {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+    delete[] L;
+    delete[] R;
+}
+void sort(double arr[], uint64_t l, uint64_t r) {
+    uint64_t i, j;
+    double key;
+    for (i = l + 1; i <= r; i++)
+    {
+        key = arr[i];
+        j = i - 1;
+        while (j >= l && arr[j] > key)
+        {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+void mergeSort(double arr[], uint64_t l, uint64_t r, uint64_t n, uint64_t m)
+{
+    if (n <= m) {
+        sort(arr, l, r);
+    }
+    else
+    {
+        uint64_t mid = l + (r - l) / 2;
+
+        cilk_spawn mergeSort(arr, l, mid, mid - l + 1, m);
+        mergeSort(arr, mid + 1, r, r - mid, m);
+        cilk_sync;
+
+        merge(arr, l, mid, r);
+    }
+}
+
+void printArray(double A[], uint64_t size)
+{
+    uint64_t i;
+    for (i = 0; i < size; i++)
+        cout << A[i] << "\t";
+    cout << "\n";
+}
+
+int cilk_main()
+{
+    uint64_t n = 536870912;
+    uint64_t m = 128;
+
+    double *arr = new double[n];
+    for (uint64_t i = 0; i < n; i++)
+        arr[i] = i + 1;
+
+    for (uint64_t i = 0; i < n; i++) {
+        uint64_t x = rand() % n;
+        uint64_t y = rand() % n;
+        double temp = arr[x];
+        arr[x] = arr[y];
+        arr[y] = temp;
+    }
+
+    cilk::cilkview cv;
+    cv.start();
+    mergeSort(arr, 0, n - 1, n, m);
+    cv.stop();
+    cv.dump("serialmerge-results");
+    cout << "N: " << n << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+
+    //printArray(arr, n);
+
+    delete[] arr;
+
+    return 0;
+}

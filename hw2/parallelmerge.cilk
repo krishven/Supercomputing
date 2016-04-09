@@ -3,12 +3,13 @@
 #include <cilkview.h>
 #include <stdint.h>
 #include <algorithm>
-#include<stdio.h>
+#include <stdio.h>
+
 using namespace std;
 
-#define N 268435456
-uint64_t M2 = 2;
-uint64_t M3 = 1;
+#define N 536870912
+uint64_t M2 = 1024;
+uint64_t M3 = 16;
 
 void swap(uint64_t &a1, uint64_t &a2) {
 	uint64_t t = a1;
@@ -16,7 +17,7 @@ void swap(uint64_t &a1, uint64_t &a2) {
 	a2 = t;
 }
 
-void serial_merge(uint64_t T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t r2, uint64_t A[], uint64_t p3, uint64_t r3)
+void serial_merge(double T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t r2, double A[], uint64_t p3, uint64_t r3)
 {
 	uint64_t i = p1, j = p2, k = p3;
 
@@ -43,14 +44,14 @@ void serial_merge(uint64_t T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t 
 	}
 }
 
-uint64_t binary_search(uint64_t k, uint64_t T[], uint64_t l, uint64_t r) {
+uint64_t binary_search(double k, double T[], uint64_t l, uint64_t r) {
 	uint64_t m;
 	r = max(l, r + 1);
 
 	while (l < r)
 	{
 		m = l + (r - l) / 2;
-		if (T[m] <= k && T[m] > k)
+		if (T[m] <= k && T[m + 1] > k)
 			return m + 1;
 		if (T[m] < k)
 			l = m + 1;
@@ -60,7 +61,7 @@ uint64_t binary_search(uint64_t k, uint64_t T[], uint64_t l, uint64_t r) {
 	return r;
 }
 
-void sort(uint64_t arr[], uint64_t l, uint64_t r) {
+void sort(double arr[], uint64_t l, uint64_t r) {
 	uint64_t i, key, j;
 	for (i = l + 1; i <= r; i++)
 	{
@@ -75,7 +76,7 @@ void sort(uint64_t arr[], uint64_t l, uint64_t r) {
 	}
 }
 
-void par_merge(uint64_t T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t r2, uint64_t A[], uint64_t p3)
+void par_merge(double T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t r2, double A[], uint64_t p3)
 {
 	uint64_t n1, n2, r3;
 
@@ -103,7 +104,7 @@ void par_merge(uint64_t T[], uint64_t p1, uint64_t r1, uint64_t p2, uint64_t r2,
 	}
 }
 
-void par_merge_sort_pm(uint64_t A[], uint64_t T[], uint64_t p, uint64_t r)
+void par_merge_sort_pm(double A[], double T[], uint64_t p, uint64_t r)
 {
 	uint64_t i, size, q;
 	uint64_t n = r - p + 1;
@@ -114,7 +115,7 @@ void par_merge_sort_pm(uint64_t A[], uint64_t T[], uint64_t p, uint64_t r)
 		q = (p + r) / 2;
 
 		cilk_spawn par_merge_sort_pm(A, T, p, q);
-//	par_merge_sort_pm(A, p, q);
+//		par_merge_sort_pm(A, p, q);
 		par_merge_sort_pm(A, T, q + 1, r);
 		cilk_sync;
 
@@ -125,37 +126,46 @@ void par_merge_sort_pm(uint64_t A[], uint64_t T[], uint64_t p, uint64_t r)
 	}
 }
 
+void printArray(double A[], uint64_t size)
+{
+    uint64_t i;
+    for (i = 0; i < size; i++)
+        cout << A[i] << "\t";
+    cout << "\n";
+}
+
 int cilk_main() {
 	uint64_t n = N, i;
-	uint64_t *A = new uint64_t[n];
-	uint64_t *T = new uint64_t[n];
+	//uint64_t diff = 53686988;
 
-	for (i = 0; i < n; i++) {
-		A[i] = n - i;
-	}
+	//while (n <= N) {
 
-	while (M2 < 268435456) {
+		double *A = new double[n];
+		double *T = new double[n];
+
+		for (i = 0; i < n; i++) {
+			uint64_t x = rand() % n;
+			uint64_t y = rand() % n;
+			double temp = A[x];
+			A[x] = A[y];
+			A[y] = temp;
+		}
+
 		cilk::cilkview cv;
 		cv.start();
 
 		par_merge_sort_pm(A, T, 0, n - 1);
 
 		cv.stop();
-		cv.dump("results", false);
-		cout << "M2: " << M2 << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
-		M2 = M2 * 2;
+		cv.dump("parallelmerge-results");
+		cout << "N: " << n << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+		
+		delete[] A;
+		delete[] T;
+		//n = n + diff;
+	//}
 
-		for (i = 0; i < n; i++) {
-			A[i] = n - i;
-		}
-	}
-
-	/*for (i = 0; i < n; i++)
-		cout << A[i] << "\t";
-	cout << "\n";*/
-
-	delete[] A;
-	delete[] T;
+	//printArray(A, n);
 
 	return 0;
 }

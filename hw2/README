@@ -1,0 +1,20 @@
+serialmerge.cilk
+----------------
+
+The shared-memory parallel merge sort algorithm (Par-Merge-Sort-SM) shown in Figure 1 which uses the standard serial Merge algorithm
+for merging two sorted sequences. N has been set to 2^29 and M1 to 128. Can introduce a while() loop in cilk_main() to run for various N and M1.
+
+parallelmerge.cilk
+------------------
+
+The shared-memory parallel merge sort algorithm (Par-Merge-Sort-PM) of Figure 2 which uses a parallel merge algorithm (Par-Merge). N has been set to 2^29, M2 to 1024 and M3 to 16. Can introduce a while() loop in cilk_main() to run for various N, M2 and M3.
+
+Makefile
+--------
+
+Makefile for generating the executable file from the .cilk files. Set TARGET as parallelmerge or serialmerge depending as required.
+
+job.sh
+------
+
+Specify proper job name, no.of required tasks, run time etc and executable file name and submit using 'sbatch job.sh'
