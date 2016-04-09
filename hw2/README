@@ -12,7 +12,7 @@ The shared-memory parallel merge sort algorithm (Par-Merge-Sort-PM) of Figure 2 
 Makefile
 --------
 
-Makefile for generating the executable file from the .cilk files. Set TARGET as parallelmerge or serialmerge depending as required.
+Makefile for generating the executable file from the .cilk files. Set TARGET as parallelmerge or serialmerge as required.
 
 job.sh
 ------

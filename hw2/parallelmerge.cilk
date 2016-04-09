@@ -128,10 +128,10 @@ void par_merge_sort_pm(double A[], double T[], uint64_t p, uint64_t r)
 
 void printArray(double A[], uint64_t size)
 {
-    uint64_t i;
-    for (i = 0; i < size; i++)
-        cout << A[i] << "\t";
-    cout << "\n";
+	uint64_t i;
+	for (i = 0; i < size; i++)
+		cout << A[i] << "\t";
+	cout << "\n";
 }
 
 int cilk_main() {
@@ -140,29 +140,29 @@ int cilk_main() {
 
 	//while (n <= N) {
 
-		double *A = new double[n];
-		double *T = new double[n];
+	double *A = new double[n];
+	double *T = new double[n];
 
-		for (i = 0; i < n; i++) {
-			uint64_t x = rand() % n;
-			uint64_t y = rand() % n;
-			double temp = A[x];
-			A[x] = A[y];
-			A[y] = temp;
-		}
+	for (i = 0; i < n; i++) {
+		uint64_t x = rand() % n;
+		uint64_t y = rand() % n;
+		double temp = A[x];
+		A[x] = A[y];
+		A[y] = temp;
+	}
 
-		cilk::cilkview cv;
-		cv.start();
+	cilk::cilkview cv;
+	cv.start();
 
-		par_merge_sort_pm(A, T, 0, n - 1);
+	par_merge_sort_pm(A, T, 0, n - 1);
 
-		cv.stop();
-		cv.dump("parallelmerge-results");
-		cout << "N: " << n << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
-		
-		delete[] A;
-		delete[] T;
-		//n = n + diff;
+	cv.stop();
+	cv.dump("parallelmerge-results");
+	cout << "N: " << n << " " << cv.accumulated_milliseconds() / 1000.f << " seconds" << endl;
+
+	delete[] A;
+	delete[] T;
+	//n = n + diff;
 	//}
 
 	//printArray(A, n);
