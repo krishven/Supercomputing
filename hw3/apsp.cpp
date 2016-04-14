@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cilk.h>
+#include <cilkview.h>
 using namespace std;
 #define D 7
 
@@ -33,10 +35,55 @@ void aLoop (int **X, int length, int xi, int xj, int ui, int uj, int vi, int vj)
     }
 }
 
+void bLoop (int **X, int length, int xi, int xj, int ui, int uj, int vi, int vj)
+{
+    for (int k = uj; k < uj + length; k++)
+    {
+        for (int i = xi; i < xi + length; i++)
+        {
+            for (int j = xj; j < xj + length; j++)
+            {
+                if (X[i][k] + X[k][j] < X[i][j])
+                    X[i][j] = X[i][k] + X[k][j];
+            }
+        }
+    }
+}
+
+void cLoop (int **X, int length, int xi, int xj, int ui, int uj, int vi, int vj)
+{
+    for (int k = uj; k < uj + length; k++)
+    {
+        for (int i = xi; i < xi + length; i++)
+        {
+            for (int j = xj; j < xj + length; j++)
+            {
+                if (X[i][k] + X[k][j] < X[i][j])
+                    X[i][j] = X[i][k] + X[k][j];
+            }
+        }
+    }
+}
+
+void dLoop (int **X, int length, int xi, int xj, int ui, int uj, int vi, int vj)
+{
+    cilk_for (int k = uj; k < uj + length; k++)
+    {
+        cilk_for (int i = xi; i < xi + length; i++)
+        {
+            cilk_for (int j = xj; j < xj + length; j++)
+            {
+                if (X[i][k] + X[k][j] < X[i][j])
+                    X[i][j] = X[i][k] + X[k][j];
+            }
+        }
+    }
+}
+
 void DFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int uj, int vi, int vj) {
 	int r = tileSize[d];
 	if (r >= length ) {
-		aLoop(X, length, X11, U11, V11);
+		dLoop(X, length, X11, U11, V11);
 	} else {
 		int newlen = length / r;
 
@@ -44,8 +91,10 @@ void DFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int 
 
 			for (int i=0;i<r;i++) 
 				for (int j=0;j<r;j++)
-					DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
+					cilk_spawn DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);		
+
+			cilk_sync;	
 		}
 	}
 }
@@ -53,21 +102,24 @@ void DFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int 
 void CFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int uj, int vi, int vj) {
 	int r = tileSize[d];
 	if (r >= length ) {
-		aLoop(X, length, X11, U11, V11);
+		cLoop(X, length, X11, U11, V11);
 	} else {
 		int newlen = length / r;
 
 		for (int k=0;k<r;k++) {
 
 			for (int i=0;i<r;i++) {
-				CFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + k*newlen, 
+				cilk_spawn CFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + k*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + k*newlen);
 			}
+			cilk_sync;
 
 			for (int i=0;i<r;i++) 
 				for (int j=0;j<r;j++)
-					DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
+					cilk_spawn DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);		
+
+			cilk_sync;	
 		}
 	}
 }
@@ -75,20 +127,24 @@ void CFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int 
 void BFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int uj, int vi, int vj) {
 	int r = tileSize[d];
 	if (r >= length ) {
-		aLoop(X, length, X11, U11, V11);
+		bLoop(X, length, X11, U11, V11);
 	} else {
 		int newlen = length / r;
 
 		for (int k=0;k<r;k++) {
 			for (int j=0;j<r;j++) {
-				BFW(X, newlen, tileSize, d+1, xi + k*newlen, xj + j*newlen, 
+				cilk_spawn BFW(X, newlen, tileSize, d+1, xi + k*newlen, xj + j*newlen, 
 				ui + k*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);
 			}
 
+			cilk_sync;
+
 			for (int i=0;i<r;i++) 
 				for (int j=0;j<r;j++)
-					DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
+					cilk_spawn DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);		
+
+			cilk_sync;	
 		}
 	}
 }
@@ -106,17 +162,20 @@ void AFW (int **X,int length, int *tileSize, int d, int xi, int xj, int ui, int 
 				ui + k*newlen, uj + k*newlen, vi + k*newlen, vj + k*newlen);
 
 			for (int j=0;j<r;j++) {
-				BFW(X, newlen, tileSize, d+1, xi + k*newlen, xj + j*newlen, 
+				cilk_spawn BFW(X, newlen, tileSize, d+1, xi + k*newlen, xj + j*newlen, 
 				ui + k*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);
 				int i = j;
 				CFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + k*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + k*newlen);
+				cilk_sync;
 			}
 
 			for (int i=0;i<r;i++) 
 				for (int j=0;j<r;j++)
-					DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
+					cilk_spawn DFW(X, newlen, tileSize, d+1, xi + i*newlen, xj + j*newlen, 
 				ui + i*newlen, uj + k*newlen, vi + k*newlen, vj + j*newlen);		
+
+			cilk_sync;
 		}
 	}
 }
@@ -137,7 +196,7 @@ void printSolution(int **X,int length)
     }
 }
 
-int main(int argc, char* argv[]) {
+int cilk_main(int argc, char* argv[]) {
 	int *tileSize = new int[D];
 	
 	for (int i=0;i<D;i++) {
