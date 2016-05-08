@@ -101,30 +101,33 @@ public class EditDistance {
       Configuration conf = new Configuration();
       Job job = Job.getInstance(conf, "word count");
 
+      job.setNumReduceTasks(40);
       job.setJarByClass(EditDistance.class);
       job.setMapperClass(MyMapper.class);
       job.setCombinerClass(MyReducer.class);
       job.setReducerClass(MyReducer.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(LongWritable.class);
+      FileInputFormat.setInputDirRecursive(job, true);
       FileInputFormat.addInputPath(job, new Path(input));
       FileOutputFormat.setOutputPath(job, new Path(output));
       job.waitForCompletion(true);
 
-      input = output + "/part-r-00000";
+
+      input = output + "/";
       output = outputFolder + System.nanoTime();
     }
   }
   public static void main(String[] args)  {
     try {
       Configuration conf = new Configuration();
-      Path path = new Path("/data/x.txt");
+      Path path = new Path(args[2]);
       FileSystem fs = FileSystem.get(path.toUri(), conf);
       FSDataInputStream inputStream = fs.open(path);
       BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
       String x = br.readLine();
 
-      path = new Path("/data/y.txt");
+      path = new Path(args[3]);
       fs = FileSystem.get(path.toUri(), conf);
       inputStream = fs.open(path);
       br = new BufferedReader(new InputStreamReader(fs.open(path)));
